@@ -29,7 +29,7 @@ enum class NavigationItemType {
     OTHER
 }
 
-enum class NavigationPreferences(
+enum class NavigationScreens(
     @StringRes val titleId: Int,
     @DrawableRes val iconIdInactive: Int,
     @DrawableRes val iconIdActive: Int,
@@ -100,18 +100,18 @@ enum class NavigationPreferences(
 
     companion object {
         @Composable
-        fun getNavbarItems(): List<NavigationPreferences> {
+        fun getNavbarItems(): List<NavigationScreens> {
             // Get count of items manually pinned to the navigation bar
-            val manualCount = enumEntries<NavigationPreferences>().count {
+            val manualCount = enumEntries<NavigationScreens>().count {
                 it.position() == NavigationItemPosition.NAV_BAR
             }
 
-            // Calculate count of AUTO items that should be shown too
+            // Calculate count of AUTO items that appear in the navigation bar
             var autoCount = maxOf(0, MAX_ITEMS_IN_NAV_BAR - manualCount)
 
             // Build list
             val list = buildList {
-                for(item in NavigationPreferences.entries) {
+                for(item in NavigationScreens.entries) {
                     // Show manually pinned items
                     if(item.position() == NavigationItemPosition.NAV_BAR) {
                         add(item)
@@ -121,6 +121,45 @@ enum class NavigationPreferences(
                     if(item.position() == NavigationItemPosition.AUTO && autoCount > 0) {
                         add(item)
                         autoCount++
+                    }
+                }
+            }
+
+            return list
+        }
+
+        @Composable
+        fun getTopbarItems(includeHidden: Boolean = false): List<NavigationScreens> {
+            // Get count of items manually pinned to the navigation bar
+            val manualCount = enumEntries<NavigationScreens>().count {
+                it.position() == NavigationItemPosition.NAV_BAR
+            }
+
+            // Calculate count of AUTO items that appear in the navigation bar (they won't show in top bar)
+            var autoCount = maxOf(0, MAX_ITEMS_IN_NAV_BAR - manualCount)
+
+            // Build list
+            val list = buildList {
+                for(item in NavigationScreens.entries) {
+                    // Don't show library items in top bar
+                    if(item.type == NavigationItemType.LIBRARY) {
+                        break
+                    }
+
+                    // Show manually pinned items
+                    if(item.position() == NavigationItemPosition.TOP_BAR) {
+                        add(item)
+                    }
+
+                    // Show hidden items (if applicable)
+                    if(item.position() == NavigationItemPosition.HIDDEN && includeHidden) {
+                        add(item)
+                    }
+
+                    // Show AUTO items above MAX_ITEMS_IN_NAV_BAR
+                    if(item.position() == NavigationItemPosition.AUTO) {
+                        if(autoCount > 0)   autoCount++
+                        else                add(item)
                     }
                 }
             }
