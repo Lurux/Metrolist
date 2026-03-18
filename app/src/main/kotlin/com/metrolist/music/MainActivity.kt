@@ -138,7 +138,7 @@ import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
 import com.metrolist.music.constants.NavigationBarAnimationSpec
 import com.metrolist.music.constants.NavigationBarHeight
-import com.metrolist.music.constants.NavigationPreferences
+import com.metrolist.music.constants.NavigationScreens
 import com.metrolist.music.constants.PauseListenHistoryKey
 import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.PureBlackKey
@@ -573,7 +573,7 @@ class MainActivity : ComponentActivity() {
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
                 val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
-                val navigationItems = NavigationPreferences.getNavbarItems()
+                val navigationItems = NavigationScreens.getNavbarItems()
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
                 val defaultOpenTab =
@@ -873,6 +873,7 @@ class MainActivity : ComponentActivity() {
                                                     )
                                                 }
                                             }
+                                            NavigationScreens
                                             IconButton(onClick = { navController.navigate("stats") }) {
                                                 Icon(
                                                     painter = painterResource(R.drawable.stats),
@@ -935,9 +936,9 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         bottomBar = {
-                            val onNavItemClick: (NavigationPreferences, Boolean) -> Unit =
+                            val onNavItemClick: (NavigationScreens, Boolean) -> Unit =
                                 remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
-                                    { screen: NavigationPreferences, isSelected: Boolean ->
+                                    { screen: NavigationScreens, isSelected: Boolean ->
                                         if (playerBottomSheetState.isExpanded) {
                                             playerBottomSheetState.collapseSoft()
                                         }
@@ -1060,9 +1061,9 @@ class MainActivity : ComponentActivity() {
                                 .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
                     ) {
                         Row(Modifier.fillMaxSize()) {
-                            val onRailItemClick: (NavigationPreferences, Boolean) -> Unit =
+                            val onRailItemClick: (NavigationScreens, Boolean) -> Unit =
                                 remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
-                                    { screen: NavigationPreferences, isSelected: Boolean ->
+                                    { screen: NavigationScreens, isSelected: Boolean ->
                                         if (playerBottomSheetState.isExpanded) {
                                             playerBottomSheetState.collapseSoft()
                                         }
