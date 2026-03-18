@@ -28,7 +28,7 @@ import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.metrolist.music.ui.screens.Screens
+import com.metrolist.music.constants.NavigationPreferences
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
@@ -39,7 +39,7 @@ private data class NavItemState(
 )
 
 @Stable
-private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigationItems: List<Screens>): Boolean {
+private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigationItems: List<NavigationPreferences>): Boolean {
     if (currentRoute == null) return false
     if (currentRoute == screenRoute) return true
     return navigationItems.any { it.route == screenRoute } && 
@@ -48,9 +48,9 @@ private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigati
 
 @Composable
 fun AppNavigationRail(
-    navigationItems: List<Screens>,
+    navigationItems: List<NavigationPreferences>,
     currentRoute: String?,
-    onItemClick: (Screens, Boolean) -> Unit,
+    onItemClick: (NavigationPreferences, Boolean) -> Unit,
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
     onSearchLongClick: (() -> Unit)? = null
@@ -73,7 +73,7 @@ fun AppNavigationRail(
                 if (isSelected) screen.iconIdActive else screen.iconIdInactive
             }
             
-            val isSearchItem = screen == Screens.Search && onSearchLongClick != null
+            val isSearchItem = screen == NavigationPreferences.SEARCH && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
             
             // Long press detection using InteractionSource
@@ -126,9 +126,9 @@ fun AppNavigationRail(
 
 @Composable
 fun AppNavigationBar(
-    navigationItems: List<Screens>,
+    navigationItems: List<NavigationPreferences>,
     currentRoute: String?,
-    onItemClick: (Screens, Boolean) -> Unit,
+    onItemClick: (NavigationPreferences, Boolean) -> Unit,
     modifier: Modifier = Modifier,
     pureBlack: Boolean = false,
     slimNav: Boolean = false,
@@ -152,7 +152,7 @@ fun AppNavigationBar(
                 if (isSelected) screen.iconIdActive else screen.iconIdInactive
             }
             
-            val isSearchItem = screen == Screens.Search && onSearchLongClick != null
+            val isSearchItem = screen == NavigationPreferences.SEARCH && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
             
             // Long press detection using InteractionSource
