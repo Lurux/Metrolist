@@ -14,7 +14,7 @@ import com.metrolist.music.utils.rememberEnumPreference
 import kotlin.enums.enumEntries
 
 // Max items pinned in navigation bar before items set to "auto" are moved to the top bar
-val MAX_ITEMS_IN_NAV_BAR = 6
+const val MAX_ITEMS_IN_NAV_BAR = 6
 
 enum class NavigationItemPosition {
     NAV_BAR,
@@ -120,7 +120,7 @@ enum class NavigationScreens(
                     // Show AUTO items up to MAX_ITEMS_IN_NAV_BAR
                     if(item.position() == NavigationItemPosition.AUTO && autoCount > 0) {
                         add(item)
-                        autoCount++
+                        autoCount--
                     }
                 }
             }
@@ -158,7 +158,7 @@ enum class NavigationScreens(
 
                     // Show AUTO items above MAX_ITEMS_IN_NAV_BAR
                     if(item.position() == NavigationItemPosition.AUTO) {
-                        if(autoCount > 0)   autoCount++
+                        if(autoCount > 0)   autoCount--
                         else                add(item)
                     }
                 }
