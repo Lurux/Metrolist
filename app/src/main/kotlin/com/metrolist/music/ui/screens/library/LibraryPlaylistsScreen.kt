@@ -287,7 +287,7 @@ fun LibraryPlaylistsScreen(
 
             IconButton(
                 onClick = { isSearchActive = true },
-                modifier = Modifier.padding(start = 6.dp),
+                modifier = Modifier.padding(start = 8.dp).size(40.dp),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.search),
@@ -299,7 +299,7 @@ fun LibraryPlaylistsScreen(
                 onClick = {
                     viewType = viewType.toggle()
                 },
-                modifier = Modifier.padding(start = 8.dp).size(40.dp),
+                modifier = Modifier.size(40.dp),
             ) {
                 Icon(
                     painter =

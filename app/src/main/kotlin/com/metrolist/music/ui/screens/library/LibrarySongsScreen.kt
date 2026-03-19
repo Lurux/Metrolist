@@ -404,6 +404,7 @@ fun LibrarySongsScreen(
 
                     IconButton(
                         onClick = { isSearchActive = true },
+                        modifier = Modifier.padding(start = 8.dp).size(40.dp),
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.search),
@@ -420,7 +421,7 @@ fun LibrarySongsScreen(
                             else
                                 NavigationItemPosition.HIDDEN
                         )},
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(40.dp),
+                        modifier = Modifier.padding(end = 8.dp).size(40.dp),
                     ) {
                         Icon(
                             painter =
