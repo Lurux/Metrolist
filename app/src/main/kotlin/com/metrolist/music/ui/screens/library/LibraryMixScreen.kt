@@ -23,9 +23,15 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.pullToRefresh
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -33,14 +39,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -58,7 +71,6 @@ import com.metrolist.music.constants.LibraryViewType
 import com.metrolist.music.constants.MixSortDescendingKey
 import com.metrolist.music.constants.MixSortType
 import com.metrolist.music.constants.MixSortTypeKey
-import com.metrolist.music.constants.MixSortTypeKey
 import com.metrolist.music.constants.ShowCachedPlaylistKey
 import com.metrolist.music.constants.ShowDownloadedPlaylistKey
 import com.metrolist.music.constants.ShowLikedPlaylistKey
@@ -69,18 +81,27 @@ import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistEntity
+import com.metrolist.music.db.entities.Song
+import com.metrolist.music.extensions.matchesNormalizedQuery
+import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.extensions.reversed
+import com.metrolist.music.extensions.toMediaItem
+import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.ui.component.AlbumGridItem
 import com.metrolist.music.ui.component.AlbumListItem
 import com.metrolist.music.ui.component.ArtistGridItem
 import com.metrolist.music.ui.component.ArtistListItem
+import com.metrolist.music.ui.component.EmptyPlaceholder
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.PlaylistGridItem
 import com.metrolist.music.ui.component.PlaylistListItem
+import com.metrolist.music.ui.component.SongGridItem
+import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.AlbumMenu
 import com.metrolist.music.ui.menu.ArtistMenu
 import com.metrolist.music.ui.menu.PlaylistMenu
+import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryMixViewModel
@@ -88,9 +109,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.Collator
 import java.time.LocalDateTime
-import java.util.Locale
 import java.util.UUID
-import androidx.compose.ui.platform.LocalLocale
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -101,6 +120,8 @@ fun LibraryMixScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val queueSearchedSongsStr = stringResource(R.string.queue_searched_songs)
     val playerConnection = LocalPlayerConnection.current ?: return
     val isPlaying by playerConnection.isEffectivelyPlaying.collectAsState()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsState()
@@ -114,6 +135,10 @@ fun LibraryMixScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
+
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val normalizedQuery = remember(searchQuery) { searchQuery.normalizeForSearch() }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
     val likedPlaylist =
@@ -171,14 +196,26 @@ fun LibraryMixScreen(
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showUploaded) = rememberPreference(ShowUploadedPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val showLikedPlaylist = showLiked && matchesNormalizedQuery(normalizedQuery, likedPlaylist.playlist.name)
+    val showDownloadedPlaylist =
+        showDownloaded && matchesNormalizedQuery(normalizedQuery, downloadPlaylist.playlist.name)
+    val showTopPlaylists = showTop && matchesNormalizedQuery(normalizedQuery, topPlaylist.playlist.name)
+    val showUploadedPlaylists =
+        showUploaded && matchesNormalizedQuery(normalizedQuery, uploadedPlaylist.playlist.name)
+    val showCachedPlaylists = showCached && normalizedQuery.isBlank()
 
     val albums = viewModel.albums.collectAsState()
     val artist = viewModel.artists.collectAsState()
+    val songs = viewModel.songs.collectAsState()
     val playlist = viewModel.playlists.collectAsState()
 
     var allItems = albums.value + artist.value + playlist.value
-    val collator = Collator.getInstance(LocalLocale.current.platformLocale)
-    collator.strength = Collator.PRIMARY
+    val locale = LocalLocale.current.platformLocale
+    val collator = remember(locale) {
+        Collator.getInstance(locale).apply {
+            strength = Collator.PRIMARY
+        }
+    }
     allItems =
         when (sortType) {
             MixSortType.CREATE_DATE ->
@@ -214,6 +251,76 @@ fun LibraryMixScreen(
                 }
         }.reversed(sortDescending)
 
+    val searchableItems = if (normalizedQuery.isBlank()) allItems else allItems + songs.value
+
+    val filteredItems = remember(searchableItems, normalizedQuery, collator) {
+        val matchedItems =
+            searchableItems.filter { item ->
+                when (item) {
+                    is Song -> {
+                        val artistNames = item.orderedArtists.map { it.name }.toTypedArray()
+                        matchesNormalizedQuery(normalizedQuery, item.song.title, item.song.albumName, *artistNames)
+                    }
+
+                    is Album -> {
+                        val artistNames = item.artists.map { it.name }.toTypedArray()
+                        matchesNormalizedQuery(normalizedQuery, item.album.title, *artistNames)
+                    }
+
+                    is Artist -> matchesNormalizedQuery(normalizedQuery, item.artist.name)
+                    is Playlist -> matchesNormalizedQuery(normalizedQuery, item.playlist.name)
+                    else -> true
+                }
+            }
+
+        if (normalizedQuery.isBlank()) {
+            matchedItems.distinctBy { it.id }
+        } else {
+            matchedItems
+                .sortedWith { first, second ->
+                    val firstPriority =
+                        when (first) {
+                            is Playlist -> 0
+                            is Song -> 1
+                            is Artist -> 2
+                            is Album -> 3
+                            else -> 4
+                        }
+                    val secondPriority =
+                        when (second) {
+                            is Playlist -> 0
+                            is Song -> 1
+                            is Artist -> 2
+                            is Album -> 3
+                            else -> 4
+                        }
+
+                    if (firstPriority != secondPriority) {
+                        firstPriority.compareTo(secondPriority)
+                    } else {
+                        val firstName =
+                            when (first) {
+                                is Playlist -> first.playlist.name
+                                is Song -> first.song.title
+                                is Artist -> first.artist.name
+                                is Album -> first.album.title
+                                else -> ""
+                            }
+                        val secondName =
+                            when (second) {
+                                is Playlist -> second.playlist.name
+                                is Song -> second.song.title
+                                is Artist -> second.artist.name
+                                is Album -> second.album.title
+                                else -> ""
+                            }
+                        collator.compare(firstName, secondName)
+                    }
+                }
+                .distinctBy { it.id }
+        }
+    }
+
     val coroutineScope = rememberCoroutineScope()
 
     val lazyListState = rememberLazyListState()
@@ -241,42 +348,103 @@ fun LibraryMixScreen(
     }
 
     val headerContent = @Composable {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(start = 16.dp),
-        ) {
-            SortHeader(
-                sortType = sortType,
-                sortDescending = sortDescending,
-                onSortTypeChange = onSortTypeChange,
-                onSortDescendingChange = onSortDescendingChange,
-                sortTypeText = { sortType ->
-                    when (sortType) {
-                        MixSortType.CREATE_DATE -> R.string.sort_by_create_date
-                        MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
-                        MixSortType.NAME -> R.string.sort_by_name
-                    }
-                },
-            )
-
-            Spacer(Modifier.weight(1f))
-
-            IconButton(
-                onClick = {
-                    viewType = viewType.toggle()
-                },
-                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+        if (isSearchActive) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 16.dp),
             ) {
-                Icon(
-                    painter =
-                    painterResource(
-                        when (viewType) {
-                            LibraryViewType.LIST -> R.drawable.list
-                            LibraryViewType.GRID -> R.drawable.grid_view
-                        },
+                TextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.search_library),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    },
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.titleMedium,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() }),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
                     ),
-                    contentDescription = null,
+                    modifier = Modifier.weight(1f),
                 )
+
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(
+                            painter = painterResource(R.drawable.close),
+                            contentDescription = null,
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = {
+                        isSearchActive = false
+                        searchQuery = ""
+                    },
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.arrow_back),
+                        contentDescription = null,
+                    )
+                }
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 16.dp),
+            ) {
+                SortHeader(
+                    sortType = sortType,
+                    sortDescending = sortDescending,
+                    onSortTypeChange = onSortTypeChange,
+                    onSortDescendingChange = onSortDescendingChange,
+                    sortTypeText = { sortType ->
+                        when (sortType) {
+                            MixSortType.CREATE_DATE -> R.string.sort_by_create_date
+                            MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                            MixSortType.NAME -> R.string.sort_by_name
+                        }
+                    },
+                )
+
+                Spacer(Modifier.weight(1f))
+
+                IconButton(
+                    onClick = { isSearchActive = true },
+                    modifier = Modifier.padding(start = 6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.search),
+                        contentDescription = null,
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        viewType = viewType.toggle()
+                    },
+                    modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+                ) {
+                    Icon(
+                        painter =
+                        painterResource(
+                            when (viewType) {
+                                LibraryViewType.LIST -> R.drawable.list
+                                LibraryViewType.GRID -> R.drawable.grid_view
+                            },
+                        ),
+                        contentDescription = null,
+                    )
+                }
             }
         }
     }
@@ -313,7 +481,7 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
-                    if (showLiked) {
+                    if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -332,7 +500,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showDownloaded) {
+                    if (showDownloadedPlaylist) {
                         item(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -351,7 +519,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showCached) {
+                    if (showCachedPlaylists) {
                         item(
                             key = "cachedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -370,7 +538,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showTop) {
+                    if (showTopPlaylists) {
                         item(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -389,7 +557,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showUploaded) {
+                    if (showUploadedPlaylists) {
                         item(
                             key = "uploadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -409,7 +577,7 @@ fun LibraryMixScreen(
                     }
 
                     items(
-                        items = allItems.distinctBy { it.id },
+                        items = filteredItems,
                         key = { it.id },
                         contentType = { CONTENT_TYPE_PLAYLIST },
                     ) { item ->
@@ -457,6 +625,63 @@ fun LibraryMixScreen(
                                             },
                                         )
                                         .animateItem(),
+                                )
+                            }
+
+                            is Song -> {
+                                SongListItem(
+                                    song = item,
+                                    showInLibraryIcon = true,
+                                    isActive = item.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    trailingContent = {
+                                        IconButton(
+                                            onClick = {
+                                                menuState.show {
+                                                    SongMenu(
+                                                        originalSong = item,
+                                                        navController = navController,
+                                                        onDismiss = menuState::dismiss,
+                                                    )
+                                                }
+                                            },
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(R.drawable.more_vert),
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    },
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (item.id == mediaMetadata?.id) {
+                                                        playerConnection.togglePlayPause()
+                                                    } else {
+                                                        val filteredSongs = filteredItems.filterIsInstance<Song>()
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = queueSearchedSongsStr,
+                                                                items = filteredSongs.map { it.toMediaItem() },
+                                                                startIndex = filteredSongs.indexOfFirst { it.id == item.id },
+                                                            ),
+                                                        )
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = item,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
                                 )
                             }
 
@@ -551,6 +776,23 @@ fun LibraryMixScreen(
                             else -> {}
                         }
                     }
+
+                    if (
+                        filteredItems.isEmpty() &&
+                        !showLikedPlaylist &&
+                        !showDownloadedPlaylist &&
+                        !showTopPlaylists &&
+                        !showUploadedPlaylists &&
+                        searchQuery.isNotBlank()
+                    ) {
+                        item(key = "empty_search_result") {
+                            EmptyPlaceholder(
+                                icon = R.drawable.search,
+                                text = stringResource(R.string.no_results_found),
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
+                    }
                 }
 
             LibraryViewType.GRID ->
@@ -578,7 +820,7 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
-                    if (showLiked) {
+                    if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -600,7 +842,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showDownloaded) {
+                    if (showDownloadedPlaylist) {
                         item(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -622,7 +864,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showCached) {
+                    if (showCachedPlaylists) {
                         item(
                             key = "cachedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -644,7 +886,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showTop) {
+                    if (showTopPlaylists) {
                         item(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -666,7 +908,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (showUploaded) {
+                    if (showUploadedPlaylists) {
                         item(
                             key = "uploadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -687,7 +929,7 @@ fun LibraryMixScreen(
                     }
 
                     items(
-                        items = allItems.distinctBy { it.id },
+                        items = filteredItems,
                         key = { it.id },
                         contentType = { CONTENT_TYPE_PLAYLIST },
                     ) { item ->
@@ -718,6 +960,46 @@ fun LibraryMixScreen(
                                             },
                                         )
                                         .animateItem(),
+                                )
+                            }
+
+                            is Song -> {
+                                SongGridItem(
+                                    song = item,
+                                    showInLibraryIcon = true,
+                                    isActive = item.id == mediaMetadata?.id,
+                                    isPlaying = isPlaying,
+                                    fillMaxWidth = true,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    if (item.id == mediaMetadata?.id) {
+                                                        playerConnection.togglePlayPause()
+                                                    } else {
+                                                        val filteredSongs = filteredItems.filterIsInstance<Song>()
+                                                        playerConnection.playQueue(
+                                                            ListQueue(
+                                                                title = queueSearchedSongsStr,
+                                                                items = filteredSongs.map { it.toMediaItem() },
+                                                                startIndex = filteredSongs.indexOfFirst { it.id == item.id },
+                                                            ),
+                                                        )
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    menuState.show {
+                                                        SongMenu(
+                                                            originalSong = item,
+                                                            navController = navController,
+                                                            onDismiss = menuState::dismiss,
+                                                        )
+                                                    }
+                                                },
+                                            )
+                                            .animateItem(),
                                 )
                             }
 
@@ -777,6 +1059,26 @@ fun LibraryMixScreen(
                             }
 
                             else -> {}
+                        }
+                    }
+
+                    if (
+                        filteredItems.isEmpty() &&
+                        !showLikedPlaylist &&
+                        !showDownloadedPlaylist &&
+                        !showTopPlaylists &&
+                        !showUploadedPlaylists &&
+                        searchQuery.isNotBlank()
+                    ) {
+                        item(
+                            key = "empty_search_result",
+                            span = { GridItemSpan(maxLineSpan) },
+                        ) {
+                            EmptyPlaceholder(
+                                icon = R.drawable.search,
+                                text = stringResource(R.string.no_results_found),
+                                modifier = Modifier.animateItem(),
+                            )
                         }
                     }
                 }
