@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -65,6 +66,8 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
 import com.metrolist.music.constants.CONTENT_TYPE_SONG
 import com.metrolist.music.constants.HideExplicitKey
+import com.metrolist.music.constants.NavigationItemPosition
+import com.metrolist.music.constants.NavigationScreens
 import com.metrolist.music.constants.SongFilter
 import com.metrolist.music.constants.SongFilterKey
 import com.metrolist.music.constants.SongSortDescendingKey
@@ -365,7 +368,7 @@ fun LibrarySongsScreen(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(start = 16.dp),
                 ) {
                     SortHeader(
                         sortType = sortType,
@@ -394,6 +397,29 @@ fun LibrarySongsScreen(
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.secondary,
                     )
+
+                    val (position, setPosition) = NavigationScreens.LIBRARY_SONGS.positionPreference()
+
+                    IconButton(
+                        onClick = {setPosition(
+                            if (position == NavigationItemPosition.HIDDEN)
+                                NavigationItemPosition.NAV_BAR
+                            else
+                                NavigationItemPosition.HIDDEN
+                        )},
+                        modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(40.dp),
+                    ) {
+                        Icon(
+                            painter =
+                                painterResource(
+                                    if (position == NavigationItemPosition.HIDDEN)
+                                        R.drawable.pin_outlined
+                                    else
+                                        R.drawable.pin_filled,
+                                ),
+                            contentDescription = null,
+                        )
+                    }
                 }
             }
 
