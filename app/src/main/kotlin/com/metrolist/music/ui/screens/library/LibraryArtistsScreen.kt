@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -59,6 +60,8 @@ import com.metrolist.music.constants.GridItemSize
 import com.metrolist.music.constants.GridItemsSizeKey
 import com.metrolist.music.constants.GridThumbnailHeight
 import com.metrolist.music.constants.LibraryViewType
+import com.metrolist.music.constants.NavigationItemPosition
+import com.metrolist.music.constants.NavigationScreens
 import com.metrolist.music.constants.YtmSyncKey
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.EmptyPlaceholder
@@ -185,7 +188,7 @@ fun LibraryArtistsScreen(
                 onClick = {
                     viewType = viewType.toggle()
                 },
-                modifier = Modifier.padding(start = 6.dp, end = 6.dp),
+                modifier = Modifier.padding(start = 8.dp).size(40.dp),
             ) {
                 Icon(
                     painter =
@@ -195,6 +198,29 @@ fun LibraryArtistsScreen(
                             LibraryViewType.GRID -> R.drawable.grid_view
                         },
                     ),
+                    contentDescription = null,
+                )
+            }
+
+            val (position, setPosition) = NavigationScreens.LIBRARY_ARTISTS.positionPreference()
+
+            IconButton(
+                onClick = {setPosition(
+                    if (position == NavigationItemPosition.HIDDEN)
+                        NavigationItemPosition.NAV_BAR
+                    else
+                        NavigationItemPosition.HIDDEN
+                )},
+                modifier = Modifier.padding(end = 8.dp).size(40.dp),
+            ) {
+                Icon(
+                    painter =
+                        painterResource(
+                            if (position == NavigationItemPosition.HIDDEN)
+                                R.drawable.pin_outlined
+                            else
+                                R.drawable.pin_filled,
+                        ),
                     contentDescription = null,
                 )
             }

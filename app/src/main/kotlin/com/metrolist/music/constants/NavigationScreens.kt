@@ -8,6 +8,7 @@ package com.metrolist.music.constants
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.metrolist.music.R
@@ -142,6 +143,11 @@ enum class NavigationScreens(
     @Composable
     fun position(): NavigationItemPosition {
         return rememberEnumPreference(this.key, this.default_position).value
+    }
+
+    @Composable
+    fun positionPreference(): MutableState<NavigationItemPosition> {
+        return rememberEnumPreference(this.key, this.default_position)
     }
 
     companion object {
