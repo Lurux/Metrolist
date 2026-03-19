@@ -202,7 +202,7 @@ fun LibraryMixScreen(
     val showTopPlaylists = showTop && matchesNormalizedQuery(normalizedQuery, topPlaylist.playlist.name)
     val showUploadedPlaylists =
         showUploaded && matchesNormalizedQuery(normalizedQuery, uploadedPlaylist.playlist.name)
-    val showCachedPlaylists = showCached && normalizedQuery.isBlank()
+    val showCachedPlaylists = showCached && matchesNormalizedQuery(normalizedQuery, cachedPlaylist.playlist.name)
 
     val albums = viewModel.albums.collectAsState()
     val artist = viewModel.artists.collectAsState()
@@ -380,7 +380,7 @@ fun LibraryMixScreen(
                     IconButton(onClick = { searchQuery = "" }) {
                         Icon(
                             painter = painterResource(R.drawable.close),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.clear_search),
                         )
                     }
                 }
@@ -393,7 +393,7 @@ fun LibraryMixScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.arrow_back),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.back),
                     )
                 }
             }
@@ -424,7 +424,7 @@ fun LibraryMixScreen(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.search),
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.search),
                     )
                 }
 
@@ -442,7 +442,12 @@ fun LibraryMixScreen(
                                 LibraryViewType.GRID -> R.drawable.grid_view
                             },
                         ),
-                        contentDescription = null,
+                        contentDescription = stringResource(
+                            when (viewType) {
+                                LibraryViewType.LIST -> R.string.switch_to_grid_view
+                                LibraryViewType.GRID -> R.string.switch_to_list_view
+                            },
+                        ),
                     )
                 }
             }
@@ -781,6 +786,7 @@ fun LibraryMixScreen(
                         filteredItems.isEmpty() &&
                         !showLikedPlaylist &&
                         !showDownloadedPlaylist &&
+                        !showCachedPlaylists &&
                         !showTopPlaylists &&
                         !showUploadedPlaylists &&
                         searchQuery.isNotBlank()
@@ -1066,6 +1072,7 @@ fun LibraryMixScreen(
                         filteredItems.isEmpty() &&
                         !showLikedPlaylist &&
                         !showDownloadedPlaylist &&
+                        !showCachedPlaylists &&
                         !showTopPlaylists &&
                         !showUploadedPlaylists &&
                         searchQuery.isNotBlank()
