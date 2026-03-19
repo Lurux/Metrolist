@@ -287,7 +287,7 @@ fun LibraryAlbumsScreen(
                             }
                         }
                         items(
-                            items = albums.distinctBy { it.id },
+                            items = albums,
                             key = { it.id },
                             contentType = { CONTENT_TYPE_ALBUM },
                         ) { album ->
@@ -344,7 +344,7 @@ fun LibraryAlbumsScreen(
                             }
                         }
                         items(
-                            items = albums.distinctBy { it.id },
+                            items = albums,
                             key = { it.id },
                             contentType = { CONTENT_TYPE_ALBUM },
                         ) { album ->
