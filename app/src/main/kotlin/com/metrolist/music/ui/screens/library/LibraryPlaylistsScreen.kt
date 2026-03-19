@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -39,9 +40,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -78,12 +79,16 @@ import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.ui.component.CreatePlaylistDialog
 import com.metrolist.music.ui.component.HideOnScrollFAB
+import com.metrolist.music.ui.component.LibrarySearchEmptyPlaceholder
+import com.metrolist.music.ui.component.LibrarySearchHeader
 import com.metrolist.music.ui.component.LibraryPlaylistGridItem
 import com.metrolist.music.ui.component.LibraryPlaylistListItem
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.PlaylistGridItem
 import com.metrolist.music.ui.component.PlaylistListItem
 import com.metrolist.music.ui.component.SortHeader
+import com.metrolist.music.extensions.matchesNormalizedQuery
+import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryPlaylistsViewModel
@@ -91,7 +96,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryPlaylistsScreen(
     navController: NavController,
@@ -101,6 +106,7 @@ fun LibraryPlaylistsScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -116,6 +122,16 @@ fun LibraryPlaylistsScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
 
     val playlists by viewModel.allPlaylists.collectAsState()
+
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val debouncedSearchQuery by viewModel.debouncedSearchQuery.collectAsState()
+    val normalizedQuery = remember(debouncedSearchQuery) { debouncedSearchQuery.normalizeForSearch() }
+    val filteredPlaylists = remember(playlists, normalizedQuery) {
+        playlists.filter { playlist ->
+            matchesNormalizedQuery(normalizedQuery, playlist.playlist.name)
+        }
+    }
 
     val topSize by viewModel.topValue.collectAsState(initial = 50)
 
@@ -175,6 +191,13 @@ fun LibraryPlaylistsScreen(
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showUploaded) = rememberPreference(ShowUploadedPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
+    val showLikedPlaylist = showLiked && matchesNormalizedQuery(normalizedQuery, likedPlaylist.playlist.name)
+    val showDownloadedPlaylist =
+        showDownloaded && matchesNormalizedQuery(normalizedQuery, downloadPlaylist.playlist.name)
+    val showCachedPlaylists = showCached && matchesNormalizedQuery(normalizedQuery, cachedPlaylist.playlist.name)
+    val showTopPlaylists = showTop && matchesNormalizedQuery(normalizedQuery, topPlaylist.playlist.name)
+    val showUploadedPlaylists =
+        showUploaded && matchesNormalizedQuery(normalizedQuery, uploadedPlaylist.playlist.name)
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
@@ -223,8 +246,16 @@ fun LibraryPlaylistsScreen(
     }
 
     val headerContent = @Composable {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        LibrarySearchHeader(
+            isSearchActive = isSearchActive,
+            searchQuery = searchQuery,
+            onSearchQueryChange = viewModel::updateSearchQuery,
+            onClose = { viewModel.updateSearchQuery("") },
+            onBack = {
+                isSearchActive = false
+                viewModel.updateSearchQuery("")
+            },
+            keyboardController = keyboardController,
             modifier = Modifier.padding(start = 16.dp),
         ) {
             SortHeader(
@@ -247,12 +278,22 @@ fun LibraryPlaylistsScreen(
             Text(
                 text = pluralStringResource(
                     R.plurals.n_playlist,
-                    playlists.size,
-                    playlists.size
+                    filteredPlaylists.size,
+                    filteredPlaylists.size,
                 ),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.secondary,
             )
+
+            IconButton(
+                onClick = { isSearchActive = true },
+                modifier = Modifier.padding(start = 6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = stringResource(R.string.search),
+                )
+            }
 
             IconButton(
                 onClick = {
@@ -262,13 +303,18 @@ fun LibraryPlaylistsScreen(
             ) {
                 Icon(
                     painter =
-                        painterResource(
-                            when (viewType) {
-                                LibraryViewType.LIST -> R.drawable.list
-                                LibraryViewType.GRID -> R.drawable.grid_view
-                            },
-                        ),
-                    contentDescription = null,
+                    painterResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.drawable.list
+                            LibraryViewType.GRID -> R.drawable.grid_view
+                        },
+                    ),
+                    contentDescription = stringResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.string.switch_to_grid_view
+                            LibraryViewType.GRID -> R.string.switch_to_list_view
+                        },
+                    ),
                 )
             }
 
@@ -313,7 +359,7 @@ fun LibraryPlaylistsScreen(
                         headerContent()
                     }
 
-                    if (showLiked) {
+                    if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -332,7 +378,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showDownloaded) {
+                    if (showDownloadedPlaylist) {
                         item(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -351,7 +397,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showCached) {
+                    if (showCachedPlaylists) {
                         item(
                             key = "cachedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -370,7 +416,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showTop) {
+                    if (showTopPlaylists) {
                         item(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -390,7 +436,7 @@ fun LibraryPlaylistsScreen(
                     }
 
 
-                    if (showUploaded) {
+                    if (showUploadedPlaylists) {
                         item(
                             key = "uploadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -409,9 +455,25 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    playlists.let { playlists ->
-                        if (playlists.isEmpty()) {
+                    filteredPlaylists.let { playlists ->
+                        if (
+                            playlists.isEmpty() &&
+                            !showLikedPlaylist &&
+                            !showDownloadedPlaylist &&
+                            !showCachedPlaylists &&
+                            !showTopPlaylists &&
+                            !showUploadedPlaylists
+                        ) {
                             item(key = "empty_placeholder") {
+                                if (searchQuery.isNotBlank()) {
+                                    LibrarySearchEmptyPlaceholder(modifier = Modifier.animateItem())
+                                } else {
+                                    LibrarySearchEmptyPlaceholder(
+                                        modifier = Modifier.animateItem(),
+                                        icon = R.drawable.playlist_play,
+                                        text = stringResource(R.string.library_playlist_empty),
+                                    )
+                                }
                             }
                         }
 
@@ -457,7 +519,7 @@ fun LibraryPlaylistsScreen(
                         headerContent()
                     }
 
-                    if (showLiked) {
+                    if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -479,7 +541,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showDownloaded) {
+                    if (showDownloadedPlaylist) {
                         item(
                             key = "downloadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -501,7 +563,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showCached) {
+                    if (showCachedPlaylists) {
                         item(
                             key = "cachedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -523,7 +585,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showTop) {
+                    if (showTopPlaylists) {
                         item(
                             key = "TopPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -545,7 +607,7 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    if (showUploaded) {
+                    if (showUploadedPlaylists) {
                         item(
                             key = "uploadedPlaylist",
                             contentType = { CONTENT_TYPE_PLAYLIST },
@@ -565,9 +627,25 @@ fun LibraryPlaylistsScreen(
                         }
                     }
 
-                    playlists.let { playlists ->
-                        if (playlists.isEmpty()) {
+                    filteredPlaylists.let { playlists ->
+                        if (
+                            playlists.isEmpty() &&
+                            !showLikedPlaylist &&
+                            !showDownloadedPlaylist &&
+                            !showCachedPlaylists &&
+                            !showTopPlaylists &&
+                            !showUploadedPlaylists
+                        ) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
+                                if (searchQuery.isNotBlank()) {
+                                    LibrarySearchEmptyPlaceholder(modifier = Modifier.animateItem())
+                                } else {
+                                    LibrarySearchEmptyPlaceholder(
+                                        modifier = Modifier.animateItem(),
+                                        icon = R.drawable.playlist_play,
+                                        text = stringResource(R.string.library_playlist_empty),
+                                    )
+                                }
                             }
                         }
 

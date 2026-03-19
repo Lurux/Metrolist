@@ -34,11 +34,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -63,10 +66,13 @@ import com.metrolist.music.constants.LibraryViewType
 import com.metrolist.music.constants.NavigationItemPosition
 import com.metrolist.music.constants.NavigationScreens
 import com.metrolist.music.constants.YtmSyncKey
+import com.metrolist.music.extensions.matchesNormalizedQuery
+import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.ui.component.ChipsRow
-import com.metrolist.music.ui.component.EmptyPlaceholder
 import com.metrolist.music.ui.component.LibraryArtistGridItem
 import com.metrolist.music.ui.component.LibraryArtistListItem
+import com.metrolist.music.ui.component.LibrarySearchEmptyPlaceholder
+import com.metrolist.music.ui.component.LibrarySearchHeader
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.utils.rememberEnumPreference
@@ -83,6 +89,7 @@ fun LibraryArtistsScreen(
 ) {
     val menuState = LocalMenuState.current
     val haptic = LocalHapticFeedback.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val coroutineScope = rememberCoroutineScope()
     var viewType by rememberEnumPreference(ArtistViewTypeKey, LibraryViewType.GRID)
 
@@ -121,6 +128,15 @@ fun LibraryArtistsScreen(
     }
 
     val artists by viewModel.allArtists.collectAsState()
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val debouncedSearchQuery by viewModel.debouncedSearchQuery.collectAsState()
+    val normalizedQuery = remember(debouncedSearchQuery) { debouncedSearchQuery.normalizeForSearch() }
+    val filteredArtists = remember(artists, normalizedQuery) {
+        artists.filter { artist ->
+            matchesNormalizedQuery(normalizedQuery, artist.artist.name)
+        }
+    }
 
     val lazyListState = rememberLazyListState()
     val lazyGridState = rememberLazyGridState()
@@ -139,8 +155,16 @@ fun LibraryArtistsScreen(
     }
 
     val headerContent = @Composable {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        LibrarySearchHeader(
+            isSearchActive = isSearchActive,
+            searchQuery = searchQuery,
+            onSearchQueryChange = viewModel::updateSearchQuery,
+            onClose = { viewModel.updateSearchQuery("") },
+            onBack = {
+                isSearchActive = false
+                viewModel.updateSearchQuery("")
+            },
+            keyboardController = keyboardController,
             modifier = Modifier.padding(start = 16.dp),
         ) {
             SortHeader(
@@ -163,12 +187,22 @@ fun LibraryArtistsScreen(
             Text(
                 text = pluralStringResource(
                     R.plurals.n_artist,
-                    artists.size,
-                    artists.size
+                    filteredArtists.size,
+                    filteredArtists.size,
                 ),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.secondary,
             )
+
+            IconButton(
+                onClick = { isSearchActive = true },
+                modifier = Modifier.padding(start = 6.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = stringResource(R.string.search),
+                )
+            }
 
             IconButton(
                 onClick = {
@@ -184,7 +218,12 @@ fun LibraryArtistsScreen(
                             LibraryViewType.GRID -> R.drawable.grid_view
                         },
                     ),
-                    contentDescription = null,
+                    contentDescription = stringResource(
+                        when (viewType) {
+                            LibraryViewType.LIST -> R.string.switch_to_grid_view
+                            LibraryViewType.GRID -> R.string.switch_to_list_view
+                        },
+                    ),
                 )
             }
 
@@ -236,14 +275,22 @@ fun LibraryArtistsScreen(
                         headerContent()
                     }
 
-                    artists.let { artists ->
+                    filteredArtists.let { artists ->
                         if (artists.isEmpty()) {
                             item(key = "empty_placeholder") {
-                                EmptyPlaceholder(
-                                    icon = R.drawable.artist,
-                                    text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
-                                )
+                                if (searchQuery.isNotBlank()) {
+                                    LibrarySearchEmptyPlaceholder(
+                                        icon = R.drawable.search,
+                                        text = stringResource(R.string.no_results_found),
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                } else {
+                                    LibrarySearchEmptyPlaceholder(
+                                        icon = R.drawable.artist,
+                                        text = stringResource(R.string.library_artist_empty),
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
                             }
                         }
 
@@ -288,14 +335,22 @@ fun LibraryArtistsScreen(
                         headerContent()
                     }
 
-                    artists.let { artists ->
+                    filteredArtists.let { artists ->
                         if (artists.isEmpty()) {
                             item(span = { GridItemSpan(maxLineSpan) }) {
-                                EmptyPlaceholder(
-                                    icon = R.drawable.artist,
-                                    text = stringResource(R.string.library_artist_empty),
-                                    modifier = Modifier.animateItem()
-                                )
+                                if (searchQuery.isNotBlank()) {
+                                    LibrarySearchEmptyPlaceholder(
+                                        icon = R.drawable.search,
+                                        text = stringResource(R.string.no_results_found),
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                } else {
+                                    LibrarySearchEmptyPlaceholder(
+                                        icon = R.drawable.artist,
+                                        text = stringResource(R.string.library_artist_empty),
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                }
                             }
                         }
 
