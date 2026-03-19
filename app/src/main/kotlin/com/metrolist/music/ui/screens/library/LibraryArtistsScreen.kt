@@ -144,8 +144,9 @@ fun LibraryArtistsScreen(
 
     val artists by viewModel.allArtists.collectAsState()
     var isSearchActive by rememberSaveable { mutableStateOf(false) }
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    val normalizedQuery = remember(searchQuery) { searchQuery.normalizeForSearch() }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val debouncedSearchQuery by viewModel.debouncedSearchQuery.collectAsState()
+    val normalizedQuery = remember(debouncedSearchQuery) { debouncedSearchQuery.normalizeForSearch() }
     val filteredArtists = remember(artists, normalizedQuery) {
         artists.filter { artist ->
             matchesNormalizedQuery(normalizedQuery, artist.artist.name)
@@ -176,7 +177,7 @@ fun LibraryArtistsScreen(
             ) {
                 TextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = viewModel::updateSearchQuery,
                     placeholder = {
                         Text(
                             text = stringResource(R.string.search_library),
@@ -198,7 +199,7 @@ fun LibraryArtistsScreen(
                 )
 
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
+                    IconButton(onClick = { viewModel.updateSearchQuery("") }) {
                         Icon(
                             painter = painterResource(R.drawable.close),
                             contentDescription = stringResource(R.string.clear_search),
@@ -209,7 +210,7 @@ fun LibraryArtistsScreen(
                 IconButton(
                     onClick = {
                         isSearchActive = false
-                        searchQuery = ""
+                        viewModel.updateSearchQuery("")
                     },
                 ) {
                     Icon(
