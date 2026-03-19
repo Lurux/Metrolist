@@ -83,6 +83,51 @@ enum class NavigationScreens(
         NavigationItemType.OTHER,
         NavigationItemPosition.TOP_BAR
     ),
+    LIBRARY_SONGS(
+        R.string.filter_songs,
+        R.drawable.music_note,
+        R.drawable.music_note,
+        "library_songs",
+        stringPreferencesKey("nav_library_songs_position"),
+        NavigationItemType.LIBRARY,
+        NavigationItemPosition.HIDDEN
+    ),
+    LIBRARY_ARTISTS(
+        R.string.filter_artists,
+        R.drawable.person,
+        R.drawable.person,
+        "library_artists",
+        stringPreferencesKey("nav_library_artists_position"),
+        NavigationItemType.LIBRARY,
+        NavigationItemPosition.HIDDEN
+    ),
+    LIBRARY_ALBUMS(
+        R.string.filter_albums,
+        R.drawable.album,
+        R.drawable.album,
+        "library_albums",
+        stringPreferencesKey("nav_library_albums_position"),
+        NavigationItemType.LIBRARY,
+        NavigationItemPosition.HIDDEN
+    ),
+    LIBRARY_PODCASTS(
+        R.string.filter_podcasts,
+        R.drawable.radio,
+        R.drawable.radio,
+        "library_podcasts",
+        stringPreferencesKey("nav_library_podcasts_position"),
+        NavigationItemType.LIBRARY,
+        NavigationItemPosition.HIDDEN
+    ),
+    LIBRARY_PLAYLISTS(
+        R.string.filter_playlists,
+        R.drawable.playlist_play,
+        R.drawable.playlist_play,
+        "library_PLAYLISTS",
+        stringPreferencesKey("nav_library_playlists_position"),
+        NavigationItemType.LIBRARY,
+        NavigationItemPosition.HIDDEN
+    ),
     LIBRARY(
         R.string.filter_library,
         R.drawable.library_music_outlined,
