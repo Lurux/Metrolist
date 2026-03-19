@@ -43,7 +43,7 @@ fun LibraryScreen(navController: NavController, scrollBehavior: TopAppBarScrollB
 
     Column {
         PrimaryScrollableTabRow(
-            selectedTabIndex = 1,
+            selectedTabIndex = if(filterType != LibraryFilter.LIBRARY) filterType.ordinal else 0,
             modifier = Modifier
                 .graphicsLayer {
                     translationY = scrollBehavior.state.heightOffset + TopAppBarExpandedHeight.toPx() + statusBarHeight
