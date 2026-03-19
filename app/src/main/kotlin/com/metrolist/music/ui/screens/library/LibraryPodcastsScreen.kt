@@ -68,6 +68,8 @@ import com.metrolist.music.LocalSyncUtils
 import com.metrolist.music.R
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
 import com.metrolist.music.constants.CONTENT_TYPE_SONG
+import com.metrolist.music.constants.NavigationItemPosition
+import com.metrolist.music.constants.NavigationScreens
 import com.metrolist.music.constants.PodcastFilter
 import com.metrolist.music.constants.PodcastFilterKey
 import com.metrolist.music.constants.SongSortDescendingKey
@@ -202,6 +204,48 @@ fun LibraryPodcastsScreen(
                         chipsHeader()
                     }
 
+                    item(key = "sort_header", contentType = CONTENT_TYPE_HEADER) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 16.dp),
+                        ) {
+                            Spacer(Modifier.weight(1f))
+                            Text(
+                                text =
+                                    pluralStringResource(
+                                        R.plurals.n_podcast,
+                                        subscribedChannels.size,
+                                        subscribedChannels.size,
+                                    ),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.secondary,
+                            )
+
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+
+                            IconButton(
+                                onClick = {setPosition(
+                                    if (position == NavigationItemPosition.HIDDEN)
+                                        NavigationItemPosition.NAV_BAR
+                                    else
+                                        NavigationItemPosition.HIDDEN
+                                )},
+                                modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(40.dp),
+                            ) {
+                                Icon(
+                                    painter =
+                                        painterResource(
+                                            if (position == NavigationItemPosition.HIDDEN)
+                                                R.drawable.pin_outlined
+                                            else
+                                                R.drawable.pin_filled,
+                                        ),
+                                    contentDescription = null,
+                                )
+                            }
+                        }
+                    }
+
                     // RDPN "New Episodes" auto-playlist card
                     item(key = "rdpn_playlist", contentType = CONTENT_TYPE_HEADER) {
                         AutoPlaylistCard(
@@ -264,14 +308,12 @@ fun LibraryPodcastsScreen(
                         chipsHeader()
                     }
 
-                    item(key = "channels_count", contentType = CONTENT_TYPE_HEADER) {
+                    item(key = "sort_header", contentType = CONTENT_TYPE_HEADER) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                            modifier = Modifier.padding(start = 16.dp),
                         ) {
+                            Spacer(Modifier.weight(1f))
                             Text(
                                 text =
                                     pluralStringResource(
@@ -282,6 +324,29 @@ fun LibraryPodcastsScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.secondary,
                             )
+
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+
+                            IconButton(
+                                onClick = {setPosition(
+                                    if (position == NavigationItemPosition.HIDDEN)
+                                        NavigationItemPosition.NAV_BAR
+                                    else
+                                        NavigationItemPosition.HIDDEN
+                                )},
+                                modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(40.dp),
+                            ) {
+                                Icon(
+                                    painter =
+                                        painterResource(
+                                            if (position == NavigationItemPosition.HIDDEN)
+                                                R.drawable.pin_outlined
+                                            else
+                                                R.drawable.pin_filled,
+                                        ),
+                                    contentDescription = null,
+                                )
+                            }
                         }
                     }
 
@@ -335,7 +400,7 @@ fun LibraryPodcastsScreen(
                     item(key = "sort_header", contentType = CONTENT_TYPE_HEADER) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 16.dp),
+                            modifier = Modifier.padding(start = 16.dp),
                         ) {
                             SortHeader(
                                 sortType = sortType,
@@ -362,6 +427,29 @@ fun LibraryPodcastsScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.secondary,
                             )
+
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+
+                            IconButton(
+                                onClick = {setPosition(
+                                    if (position == NavigationItemPosition.HIDDEN)
+                                        NavigationItemPosition.NAV_BAR
+                                    else
+                                        NavigationItemPosition.HIDDEN
+                                )},
+                                modifier = Modifier.padding(start = 8.dp, end = 8.dp).size(40.dp),
+                            ) {
+                                Icon(
+                                    painter =
+                                        painterResource(
+                                            if (position == NavigationItemPosition.HIDDEN)
+                                                R.drawable.pin_outlined
+                                            else
+                                                R.drawable.pin_filled,
+                                        ),
+                                    contentDescription = null,
+                                )
+                            }
                         }
                     }
 

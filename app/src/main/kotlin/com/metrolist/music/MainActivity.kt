@@ -628,6 +628,7 @@ class MainActivity : ComponentActivity() {
                     remember(currentRoute, navigationItemRoutes) {
                         currentRoute == null ||
                             navigationItemRoutes.contains(currentRoute) ||
+                            currentRoute!!.startsWith("library_") ||
                             currentRoute!!.startsWith("search/")
                     }
 

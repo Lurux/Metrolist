@@ -794,6 +794,10 @@
         <item quantity="one">%d channel</item>
         <item quantity="other">%d channels</item>
     </plurals>
+    <plurals name="n_podcast">
+        <item quantity="one">%d podcast</item>
+        <item quantity="other">%d podcasts</item>
+    </plurals>
 
     <!-- Restore confirmation dialog -->
     <string name="restore_confirm_title">Restore backup?</string>
