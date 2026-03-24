@@ -26,8 +26,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -221,7 +219,7 @@ fun LibraryPodcastsScreen(
                                 color = MaterialTheme.colorScheme.secondary,
                             )
 
-                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.getPositionPreference()
 
                             IconButton(
                                 onClick = {setPosition(
@@ -325,7 +323,7 @@ fun LibraryPodcastsScreen(
                                 color = MaterialTheme.colorScheme.secondary,
                             )
 
-                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.getPositionPreference()
 
                             IconButton(
                                 onClick = {setPosition(
@@ -428,7 +426,7 @@ fun LibraryPodcastsScreen(
                                 color = MaterialTheme.colorScheme.secondary,
                             )
 
-                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.positionPreference()
+                            val (position, setPosition) = NavigationScreens.LIBRARY_PODCASTS.getPositionPreference()
 
                             IconButton(
                                 onClick = {setPosition(

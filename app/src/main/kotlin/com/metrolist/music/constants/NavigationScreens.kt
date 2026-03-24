@@ -145,8 +145,8 @@ enum class NavigationScreens(
     }
 
     @Composable
-    fun getPositionSetter(): (NavigationItemPosition) -> Unit {
-        return rememberEnumPreference(this.key, this.default_position).component2()
+    fun getPositionPreference(): MutableState<NavigationItemPosition> {
+        return rememberEnumPreference(this.key, this.default_position)
     }
 
     companion object {

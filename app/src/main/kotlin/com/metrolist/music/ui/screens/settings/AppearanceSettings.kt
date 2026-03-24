@@ -186,7 +186,7 @@ fun AppearanceSettings(
         )
 
     val onNavigationItemPositionChange = NavigationScreens.entries.associate {
-        it to it.getPositionSetter()
+        it to it.getPositionPreference().component2()
     }
     val (defaultOpenTab, onDefaultOpenTabChange) = rememberEnumPreference(
         DefaultOpenTabKey,
