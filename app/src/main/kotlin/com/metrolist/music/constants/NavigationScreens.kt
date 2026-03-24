@@ -140,13 +140,13 @@ enum class NavigationScreens(
     );
 
     @Composable
-    fun position(): NavigationItemPosition {
+    fun getPosition(): NavigationItemPosition {
         return rememberEnumPreference(this.key, this.default_position).value
     }
 
     @Composable
-    fun positionPreference(): MutableState<NavigationItemPosition> {
-        return rememberEnumPreference(this.key, this.default_position)
+    fun getPositionSetter(): (NavigationItemPosition) -> Unit {
+        return rememberEnumPreference(this.key, this.default_position).component2()
     }
 
     companion object {
@@ -154,7 +154,7 @@ enum class NavigationScreens(
         fun getNavbarItems(): List<NavigationScreens> {
             // Get count of items manually pinned to the navigation bar
             val manualCount = enumEntries<NavigationScreens>().count {
-                it.type == NavigationItemType.CORE || it.position() == NavigationItemPosition.NAV_BAR
+                it.type == NavigationItemType.CORE || it.getPosition() == NavigationItemPosition.NAV_BAR
             }
 
             // Calculate count of AUTOMATIC items that appear in the navigation bar
@@ -164,12 +164,12 @@ enum class NavigationScreens(
             val list = buildList {
                 for(item in NavigationScreens.entries) {
                     // Show manually pinned items
-                    if(item.type == NavigationItemType.CORE || item.position() == NavigationItemPosition.NAV_BAR) {
+                    if(item.type == NavigationItemType.CORE || item.getPosition() == NavigationItemPosition.NAV_BAR) {
                         add(item)
                     }
 
                     // Show AUTOMATIC items up to MAX_ITEMS_IN_NAV_BAR
-                    if(item.position() == NavigationItemPosition.AUTOMATIC && autoCount > 0) {
+                    if(item.getPosition() == NavigationItemPosition.AUTOMATIC && autoCount > 0) {
                         add(item)
                         autoCount--
                     }
@@ -183,7 +183,7 @@ enum class NavigationScreens(
         fun getTopbarItems(includeHidden: Boolean = false): List<NavigationScreens> {
             // Get count of items manually pinned to the navigation bar
             val manualCount = enumEntries<NavigationScreens>().count {
-                it.position() == NavigationItemPosition.NAV_BAR
+                it.getPosition() == NavigationItemPosition.NAV_BAR
             }
 
             // Calculate count of AUTOMATIC items that appear in the navigation bar (they won't show in top bar)
@@ -194,21 +194,21 @@ enum class NavigationScreens(
                 for(item in NavigationScreens.entries) {
                     // Don't show library items in top bar
                     if(item.type == NavigationItemType.LIBRARY) {
-                        break
+                        continue
                     }
 
                     // Show manually pinned items
-                    if(item.position() == NavigationItemPosition.TOP_BAR) {
+                    if(item.getPosition() == NavigationItemPosition.TOP_BAR) {
                         add(item)
                     }
 
                     // Show hidden items (if applicable)
-                    if(item.position() == NavigationItemPosition.HIDDEN && includeHidden) {
+                    if(item.getPosition() == NavigationItemPosition.HIDDEN && includeHidden) {
                         add(item)
                     }
 
                     // Show AUTOMATIC items above MAX_ITEMS_IN_NAV_BAR
-                    if(item.position() == NavigationItemPosition.AUTOMATIC) {
+                    if(item.getPosition() == NavigationItemPosition.AUTOMATIC) {
                         if(autoCount > 0)   autoCount--
                         else                add(item)
                     }

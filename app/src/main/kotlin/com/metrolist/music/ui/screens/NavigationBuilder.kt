@@ -78,11 +78,11 @@ fun NavGraphBuilder.navigationBuilder(
     activity: Activity,
     snackbarHostState: SnackbarHostState,
 ) {
-    composable(Screens.Home.route) {
+    composable(NavigationScreens.HOME.route) {
         HomeScreen(navController = navController, snackbarHostState = snackbarHostState)
     }
 
-    composable(Screens.Search.route) {
+    composable(NavigationScreens.SEARCH.route) {
         val pureBlackEnabled by rememberPreference(PureBlackKey, defaultValue = false)
         val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
         val isSystemInDarkTheme = isSystemInDarkTheme()
@@ -115,11 +115,11 @@ fun NavGraphBuilder.navigationBuilder(
     composable(NavigationScreens.LIBRARY_PLAYLISTS.route) {
         LibraryPlaylistsScreen(navController)
     }
-    composable(Screens.Library.route) {
+    composable(NavigationScreens.LIBRARY.route) {
         LibraryScreen(navController, scrollBehavior)
     }
 
-    composable(Screens.ListenTogether.route) {
+    composable(NavigationScreens.LISTEN_TOGETHER.route) {
         ListenTogetherScreen(navController, showTopBar = false)
     }
 
